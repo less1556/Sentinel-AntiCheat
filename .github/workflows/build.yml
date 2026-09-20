@@ -1,13 +1,33 @@
-name: Build
-on: [push]
+name: Build Sentinel AntiCheat
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: windows-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get install libsqlite3-dev libyaml-cpp-dev
-      - run: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . -j$(nproc)
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sentinel-linux
-          path: build/*.so
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build Solution
+      run: |
+        msbuild /p:Configuration=Release /p:Platform=x86
+      # Nota: Ajusta la plataforma a x64 o la ruta del archivo .sln/.vcxproj según la estructura del proyecto.
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Sentinel-AntiCheat-Build
+        path: |
+          **/Release/*.dll
+          **/Release/*.exe
+          **/Release/*.so
