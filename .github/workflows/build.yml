@@ -1,4 +1,4 @@
-name: Build Sentinel AntiCheat
+name: Build Sentinel AntiCheat (Linux)
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-linux:
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
@@ -15,19 +15,31 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
-
-    - name: Build Solution
+    - name: Install dependencies (32-bit & build tools)
       run: |
-        msbuild /p:Configuration=Release /p:Platform=x86
-      # Nota: Ajusta la plataforma a x64 o la ruta del archivo .sln/.vcxproj según la estructura del proyecto.
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y build-essential gcc-multilib g++-multilib cmake make
 
-    - name: Upload Build Artifacts
+    - name: Build with CMake / Make
+      run: |
+        if [ -f "CMakeLists.txt" ]; then
+          mkdir -p build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          make -j$(nproc)
+        elif [ -f "Makefile" ]; then
+          make -j$(nproc)
+        else
+          echo "No se encontró Makefile ni CMakeLists.txt. Compilando archivos .cpp directamente..."
+          mkdir -p bin
+          g++ -m32 -O2 -shared -fPIC src/*.cpp -o bin/sentinel_mm_i386.so
+        fi
+
+    - name: Upload Linux Build Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Sentinel-AntiCheat-Build
+        name: Sentinel-AntiCheat-Linux
         path: |
-          **/Release/*.dll
-          **/Release/*.exe
-          **/Release/*.so
+          **/*.so
+          build/*.so
+          bin/*.so
