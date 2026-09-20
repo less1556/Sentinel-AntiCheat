@@ -21,24 +21,27 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential gcc-multilib g++-multilib cmake make
 
-- name: Build with CMake / Make
+    - name: Patch CMakeLists.txt and Build
       run: |
+        # Eliminar referencias a subdirectorios opcionales que causan error si no existen
         if [ -f "CMakeLists.txt" ]; then
+          sed -i '/add_subdirectory(examples)/d' CMakeLists.txt
+          sed -i '/add_subdirectory(tests)/d' CMakeLists.txt
+          sed -i '/add_subdirectory(example)/d' CMakeLists.txt
+          sed -i '/add_subdirectory(test)/d' CMakeLists.txt
+
           mkdir -p build && cd build
-          # Desactivamos Tests y construimos directamente
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DSENTINEL_BUILD_TESTS=OFF \
                 -DSENTINEL_BUILD_EXAMPLES=OFF \
                 -DBUILD_TESTING=OFF \
-                -DBUILD_EXAMPLES=OFF .. || {
-                  echo "Si CMake falla por la carpeta 'examples', removemos la línea problemática:"
-                  sed -i '/add_subdirectory(examples)/d' ../CMakeLists.txt
-                  sed -i '/add_subdirectory(tests)/d' ../CMakeLists.txt
-                  cmake -DCMAKE_BUILD_TYPE=Release ..
-                }
+                -DBUILD_EXAMPLES=OFF ..
           make -j$(nproc)
         elif [ -f "Makefile" ]; then
           make -j$(nproc)
+        else
+          echo "No se encontró CMakeLists.txt ni Makefile"
+          exit 1
         fi
 
     - name: Upload Linux Build Artifacts
