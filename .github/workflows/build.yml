@@ -1,0 +1,13 @@
+name: Build
+on: [push]
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install libsqlite3-dev libyaml-cpp-dev
+      - run: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . -j$(nproc)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sentinel-linux
+          path: build/*.so
